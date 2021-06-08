@@ -11,6 +11,7 @@ import io.iohk.ethereum.utils.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -34,23 +35,23 @@ abstract class BaseNode extends Node {
 
     implicit val sch = monix.execution.Scheduler.global
 
-    var a = 0L
-    bhs.storageContent.foreach { _ =>
-      a += 1
-    }
-    log.info("BHS size {}", a)
+    val res1 = bhs.storageContent.foldLeft(0L) {
+      case (acc, _) => acc + 1
+    }.runAsyncGetLast
+    val res2 = Await.result(res1, Duration.Inf)
+    log.info("BHS size {}", res2)
 
-    a = 0L
-    bbs.storageContent.foreach { _ =>
-      a += 1
-    }
-    log.info("BBS size {}", a)
+    val res3 = bbs.storageContent.foldLeft(0L) {
+      case (acc, _) => acc + 1
+    }.runAsyncGetLast
+    val res4 = Await.result(res3, Duration.Inf)
+    log.info("BBS size {}", res4)
 
-    a = 0L
-    bnms.storageContent.foreach { _ =>
-      a += 1
-    }
-    log.info("BNMS size {}", a)
+    val res5 = bnms.storageContent.foldLeft(0L) {
+      case (acc, _) => acc + 1
+    }.runAsyncGetLast
+    val res6 = Await.result(res5, Duration.Inf)
+    log.info("BNMS size {}", res6)
   }
 
   private[this] def startPeerManager(): Unit = peerManager ! PeerManagerActor.StartConnecting
