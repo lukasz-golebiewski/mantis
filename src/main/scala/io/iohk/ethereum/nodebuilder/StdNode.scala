@@ -2,6 +2,7 @@ package io.iohk.ethereum.nodebuilder
 
 import io.iohk.ethereum.blockchain.sync.SyncProtocol
 import io.iohk.ethereum.consensus.StdConsensusBuilder
+import io.iohk.ethereum.db.dataSource.RocksDbDataSource
 import io.iohk.ethereum.metrics.{Metrics, MetricsConfig}
 import io.iohk.ethereum.network.discovery.PeerDiscoveryManager
 import io.iohk.ethereum.network.{PeerManagerActor, ServerActor}
@@ -24,6 +25,32 @@ import scala.util.{Failure, Success, Try}
 abstract class BaseNode extends Node {
   private[this] def loadGenesisData(): Unit = {
     if (!Config.testmode) genesisDataLoader.loadGenesisData()
+  }
+
+  private[this] def reportDBState(): Unit = {
+    val bhs = storagesInstance.storages.blockHeadersStorage
+    val bbs = storagesInstance.storages.blockBodiesStorage
+    val bnms = storagesInstance.storages.blockNumberMappingStorage
+
+    implicit val sch = monix.execution.Scheduler.global
+
+    var a = 0L
+    bhs.storageContent.foreach { _ =>
+      a += 1
+    }
+    log.info("BHS size {}", a)
+
+    a = 0L
+    bbs.storageContent.foreach { _ =>
+      a += 1
+    }
+    log.info("BBS size {}", a)
+
+    a = 0L
+    bnms.storageContent.foreach { _ =>
+      a += 1
+    }
+    log.info("BNMS size {}", a)
   }
 
   private[this] def startPeerManager(): Unit = peerManager ! PeerManagerActor.StartConnecting
@@ -58,6 +85,8 @@ abstract class BaseNode extends Node {
 
   def start(): Unit = {
     startMetricsClient()
+
+    reportDBState()
 
     loadGenesisData()
 

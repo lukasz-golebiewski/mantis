@@ -16,7 +16,7 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 class RocksDbDataSource(
-    private var db: RocksDB,
+    var db: RocksDB,
     private val rocksDbConfig: RocksDbConfig,
     private var readOptions: ReadOptions,
     private var dbOptions: DBOptions,
