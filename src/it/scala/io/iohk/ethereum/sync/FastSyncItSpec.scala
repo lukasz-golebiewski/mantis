@@ -34,8 +34,14 @@ class FastSyncItSpec extends FlatSpecBase with Matchers with BeforeAndAfterAll {
       _ <- peer1.startFastSync().delayExecution(50.milliseconds)
       _ <- peer1.waitForFastSyncFinish()
     } yield {
-      assert(peer1.bl.getBestBlockNumber() == peer2.bl.getBestBlockNumber() - peer2.testSyncConfig.pivotBlockOffset)
-      assert(peer1.bl.getBestBlockNumber() == peer3.bl.getBestBlockNumber() - peer3.testSyncConfig.pivotBlockOffset)
+      assert(
+        peer1.bl
+          .getBestBlockNumber() == peer2.bl.getBestBlockNumber() - peer2.testSyncConfig.pivotBlockOffset
+      )
+      assert(
+        peer1.bl
+          .getBestBlockNumber() == peer3.bl.getBestBlockNumber() - peer3.testSyncConfig.pivotBlockOffset
+      )
     }
   }
 
@@ -121,7 +127,10 @@ class FastSyncItSpec extends FlatSpecBase with Matchers with BeforeAndAfterAll {
       _ <- peer1.startFastSync().delayExecution(50.milliseconds)
       _ <- peer1.waitForFastSyncFinish()
     } yield {
-      assert(peer1.bl.getBestBlockNumber() == peer2.bl.getBestBlockNumber() - peer2.testSyncConfig.pivotBlockOffset)
+      assert(
+        peer1.bl
+          .getBestBlockNumber() == peer2.bl.getBestBlockNumber() - peer2.testSyncConfig.pivotBlockOffset
+      )
     }
   }
 

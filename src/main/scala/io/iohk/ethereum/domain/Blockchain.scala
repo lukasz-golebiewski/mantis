@@ -115,13 +115,6 @@ trait Blockchain {
   def getReceiptsByHash(blockhash: ByteString): Option[Seq[Receipt]]
 
   /**
-    * Returns EVM code searched by it's hash
-    * @param hash Code Hash
-    * @return EVM code if found
-    */
-  def getEvmCodeByHash(hash: ByteString): Option[ByteString]
-
-  /**
     * Returns MPT node searched by it's hash
     * @param hash Node Hash
     * @return MPT node
@@ -214,8 +207,6 @@ trait Blockchain {
 
   def getStateStorage: StateStorage
 
-  def mptStateSavedKeys(): Observable[Either[IterationError, ByteString]]
-
   /**
     * Strict check if given block hash is in chain
     * Using any of getXXXByHash is not always accurate - after restart the best block is often lower than before restart
@@ -237,9 +228,6 @@ class BlockchainImpl(
     protected val blockNumberMappingStorage: BlockNumberMappingStorage,
     protected val receiptStorage: ReceiptStorage,
     protected val evmCodeStorage: EvmCodeStorage,
-    protected val pruningMode: PruningMode,
-    protected val nodeStorage: NodeStorage,
-    protected val cachedNodeStorage: CachedNodeStorage,
     protected val chainWeightStorage: ChainWeightStorage,
     protected val transactionMappingStorage: TransactionMappingStorage,
     protected val appStateStorage: AppStateStorage,
@@ -267,8 +255,6 @@ class BlockchainImpl(
     blockBodiesStorage.get(hash)
 
   override def getReceiptsByHash(blockhash: ByteString): Option[Seq[Receipt]] = receiptStorage.get(blockhash)
-
-  override def getEvmCodeByHash(hash: ByteString): Option[ByteString] = evmCodeStorage.get(hash)
 
   override def getChainWeightByHash(blockhash: ByteString): Option[ChainWeight] = chainWeightStorage.get(blockhash)
 
@@ -523,11 +509,6 @@ class BlockchainImpl(
   }
   // scalastyle:on method.length
 
-  def mptStateSavedKeys(): Observable[Either[IterationError, ByteString]] = {
-    (nodeStorage.storageContent.map(c => c.map(_._1)) ++ evmCodeStorage.storageContent.map(c => c.map(_._1)))
-      .takeWhileInclusive(_.isRight)
-  }
-
   /**
     * Recursive function which try to find the previous checkpoint by traversing blocks from top to the bottom.
     * In case of finding the checkpoint block number, the function will finish the job and return result
@@ -610,10 +591,7 @@ trait BlockchainStorages {
   val evmCodeStorage: EvmCodeStorage
   val chainWeightStorage: ChainWeightStorage
   val transactionMappingStorage: TransactionMappingStorage
-  val nodeStorage: NodeStorage
-  val pruningMode: PruningMode
   val appStateStorage: AppStateStorage
-  val cachedNodeStorage: CachedNodeStorage
   val stateStorage: StateStorage
 }
 
@@ -625,9 +603,6 @@ object BlockchainImpl {
       blockNumberMappingStorage = storages.blockNumberMappingStorage,
       receiptStorage = storages.receiptStorage,
       evmCodeStorage = storages.evmCodeStorage,
-      pruningMode = storages.pruningMode,
-      nodeStorage = storages.nodeStorage,
-      cachedNodeStorage = storages.cachedNodeStorage,
       chainWeightStorage = storages.chainWeightStorage,
       transactionMappingStorage = storages.transactionMappingStorage,
       appStateStorage = storages.appStateStorage,
