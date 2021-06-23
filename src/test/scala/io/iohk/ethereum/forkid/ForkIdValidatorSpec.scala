@@ -9,10 +9,12 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should._
 import org.bouncycastle.util.encoders.Hex
 
-import io.iohk.ethereum.rlp._
-import io.iohk.ethereum.rlp.RLPImplicits._
+import monix.eval.Task
 
-import ForkId._
+import scala.concurrent.duration._
+import monix.execution.Scheduler.Implicits.global
+
+import ForkIdValidator._
 
 class ForkIdValidatorSpec extends AnyWordSpec with Matchers {
 
@@ -25,19 +27,21 @@ class ForkIdValidatorSpec extends AnyWordSpec with Matchers {
       // latest fork at the time of writing those assertions (in the spec) was Petersburg
       val ethForksList: List[BigInt] = List(1150000, 1920000, 2463000, 2675000, 4370000, 7280000)
 
-      def validatePeer(head: BigInt, remoteForkId: ForkId) = ForkIdValidator.validatePeer(ethGenesisHash, ethForksList)(head, remoteForkId)
+      def validatePeer(head: BigInt, remoteForkId: ForkId) =
+        ForkIdValidator
+          .validatePeer[Task](ethGenesisHash, ethForksList)(head, remoteForkId)
+          .runSyncUnsafe(Duration(1, SECONDS))
 
       // Local is mainnet Petersburg, remote announces the same. No future fork is announced.
       validatePeer(7987396, ForkId(0x668db0afL, None)) shouldBe Connect
 
       // Local is mainnet Petersburg, remote announces the same. Remote also announces a next fork
-	  // at block 0xffffffff, but that is uncertain.
-
+      // at block 0xffffffff, but that is uncertain.
       validatePeer(7279999, ForkId(0xa00bc324L, Some(ForkIdValidator.maxUInt64))) shouldBe Connect
 
-	  // Local is mainnet currently in Byzantium only (so it's aware of Petersburg), remote announces
-	  // also Byzantium, and it's also aware of Petersburg (e.g. updated node before the fork). We
-	  // don't know if Petersburg passed yet (will pass) or not.
+      // Local is mainnet currently in Byzantium only (so it's aware of Petersburg), remote announces
+      // also Byzantium, and it's also aware of Petersburg (e.g. updated node before the fork). We
+      // don't know if Petersburg passed yet (will pass) or not.
       validatePeer(7279999, ForkId(0xa00bc324L, Some(7280000))) shouldBe Connect
 
       // Local is mainnet Petersburg, remote announces the same. Remote also announces a next fork
@@ -48,7 +52,6 @@ class ForkIdValidatorSpec extends AnyWordSpec with Matchers {
       // also Byzantium, but it's not yet aware of Petersburg (e.g. non updated node before the fork).
       // In this case we don't know if Petersburg passed yet or not.
       validatePeer(7279999, ForkId(0xa00bc324L, None)) shouldBe Connect
-
 
       validatePeer(7279999, ForkId(0xa00bc324L, Some(7280000))) shouldBe Connect
 
@@ -63,9 +66,6 @@ class ForkIdValidatorSpec extends AnyWordSpec with Matchers {
 
       // Local is mainnet Petersburg, remote announces Spurious + knowledge about Byzantium. Remote
       // is definitely out of sync. It may or may not need the Petersburg update, we don't know yet.
-      /*
-		{7987396, ID{Hash: checksumToBytes(0x3edd5b10), Next: 4370000}, nil},
-       */
       validatePeer(7987396, ForkId(0x3edd5b10L, Some(4370000))) shouldBe Connect
 
       // Local is mainnet Byzantium, remote announces Petersburg. Local is out of sync, accept.
@@ -99,7 +99,6 @@ class ForkIdValidatorSpec extends AnyWordSpec with Matchers {
       // Local is mainnet Byzantium. Remote is also in Byzantium, but announces Gopherium (non existing
       // fork) at block 7279999, before Petersburg. Local is incompatible.
       validatePeer(7279999, ForkId(0xa00bc324L, Some(7279999L))) shouldBe ErrLocalIncompatibleOrStale
-
     }
   }
 }
